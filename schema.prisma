@@ -1,0 +1,200 @@
+// Vision Prep — Prisma Database Schema
+// Tech: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// AUTH & USERS
+// ─────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  BUILDER
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  role        Role     @default(BUILDER)
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  completions   StepCompletion[]
+  issueReports  IssueReport[]
+  assignedBuilds BuildAssignment[]
+}
+
+// ─────────────────────────────────────────────
+// INSTRUCTION LIBRARY
+// ─────────────────────────────────────────────
+
+model Folder {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  parentId    String?
+  parent      Folder?  @relation("FolderTree", fields: [parentId], references: [id])
+  children    Folder[] @relation("FolderTree")
+  steps       Step[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Step {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  order       Int      @default(0)
+  folderId    String?
+  folder      Folder?  @relation(fields: [folderId], references: [id])
+  images      StepImage[]
+  parts       StepPart[]
+  buildSteps  BuildStep[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model StepImage {
+  id           String   @id @default(cuid())
+  stepId       String
+  step         Step     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  url          String
+  thumbnailUrl String?
+  altText      String?
+  order        Int      @default(0)
+  annotations  Json?    // Stored as JSON: [{ type, x, y, width, height, color, label }]
+  createdAt    DateTime @default(now())
+}
+
+model Part {
+  id          String   @id @default(cuid())
+  name        String
+  sku         String?  @unique
+  description String?
+  imageUrl    String?
+  category    String?  // "tool" | "component" | "material" | "fastener" etc.
+  stepParts   StepPart[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model StepPart {
+  id       String @id @default(cuid())
+  stepId   String
+  step     Step   @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  partId   String
+  part     Part   @relation(fields: [partId], references: [id])
+  quantity Int    @default(1)
+  notes    String?
+}
+
+// ─────────────────────────────────────────────
+// BUILDS / JOBS
+// ─────────────────────────────────────────────
+
+enum BuildStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+model Build {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  status      BuildStatus @default(DRAFT)
+  customerRef String?     // external customer/order reference
+  tags        String[]
+  buildSteps  BuildStep[]
+  assignments BuildAssignment[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model BuildStep {
+  id           String   @id @default(cuid())
+  buildId      String
+  build        Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  stepId       String
+  step         Step     @relation(fields: [stepId], references: [id])
+  order        Int
+  section      String?  // e.g. "Frame Assembly", "Wiring", "Final QC"
+  isOptional   Boolean  @default(false)
+  notes        String?  // build-specific override notes
+  completions  StepCompletion[]
+  issueReports IssueReport[]
+}
+
+model BuildAssignment {
+  id        String   @id @default(cuid())
+  buildId   String
+  build     Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  assignedAt DateTime @default(now())
+
+  @@unique([buildId, userId])
+}
+
+// ─────────────────────────────────────────────
+// TRACKING & COMPLETIONS
+// ─────────────────────────────────────────────
+
+model StepCompletion {
+  id          String    @id @default(cuid())
+  buildStepId String
+  buildStep   BuildStep @relation(fields: [buildStepId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  completedAt DateTime  @default(now())
+  durationMs  Int?      // milliseconds spent on this step
+
+  @@unique([buildStepId, userId])
+}
+
+// ─────────────────────────────────────────────
+// ISSUE REPORTING
+// ─────────────────────────────────────────────
+
+enum IssueType {
+  WRONG_PART
+  MISSING_PART
+  WRONG_TOOL
+  UNCLEAR_INSTRUCTIONS
+  DAMAGED_COMPONENT
+  OTHER
+}
+
+enum IssueStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  WONT_FIX
+}
+
+model IssueReport {
+  id          String      @id @default(cuid())
+  buildStepId String
+  buildStep   BuildStep   @relation(fields: [buildStepId], references: [id], onDelete: Cascade)
+  reporterId  String
+  reporter    User        @relation(fields: [reporterId], references: [id])
+  type        IssueType
+  status      IssueStatus @default(OPEN)
+  description String
+  imageUrls   String[]
+  adminNotes  String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
