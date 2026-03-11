@@ -46,3 +46,34 @@ export async function deleteStep(id: string, folderId: string) {
   await supabase.from("Step").delete().eq("id", id);
   revalidatePath(`/library/${folderId}`);
 }
+
+export async function uploadStepImage(formData: FormData) {
+  const file = formData.get("file") as File;
+  const stepId = formData.get("stepId") as string;
+
+  if (!file || !stepId) {
+    return;
+  }
+
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${createId()}.${fileExt}`;
+  const filePath = `steps/${stepId}/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("step-images")
+    .upload(filePath, file);
+
+  if (uploadError) return;
+
+  const { data: { publicUrl } } = supabase.storage
+    .from("step-images")
+    .getPublicUrl(filePath);
+
+  const { error: dbError } = await supabase.from("StepImage").insert({
+    id: createId(),
+    stepId,
+    url: publicUrl,
+  });
+
+  revalidatePath("/library");
+}

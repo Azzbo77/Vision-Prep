@@ -178,7 +178,10 @@ export default async function FolderPage({
             }}>
               {index + 1}
             </div>
-            <div style={{ flex: 1 }}>
+            <Link
+              href={`/library/${folderId}/${step.id}`}
+              style={{ textDecoration: "none", flex: 1 }}
+            >
               <div style={{
                 color: "var(--text)",
                 fontWeight: 600,
@@ -196,7 +199,7 @@ export default async function FolderPage({
                   {step.description}
                 </div>
               )}
-            </div>
+            </Link>
             <form action={deleteStep.bind(null, step.id, folderId)}>
               <button
                 type="submit"
