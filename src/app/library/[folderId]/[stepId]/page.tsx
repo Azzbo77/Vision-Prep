@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import ImageUploadForm from "./ImageUploadForm";
+import AnnotationCanvas from "./AnnotationCanvas";
 
 export default async function StepPage({
   params,
@@ -86,13 +87,9 @@ export default async function StepPage({
         <ImageUploadForm stepId={stepId} />
       </div>
 
-      {/* Images grid */}
+      {/* Images with annotation */}
       {images && images.length > 0 && (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-          gap: 16,
-        }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           {images.map((image) => (
             <div
               key={image.id}
@@ -100,18 +97,24 @@ export default async function StepPage({
                 background: "var(--surface)",
                 border: "1px solid var(--border)",
                 borderRadius: 12,
-                overflow: "hidden",
+                padding: 24,
               }}
             >
-              <img
-                src={image.url}
-                alt={image.altText || step.title}
-                style={{
-                  width: "100%",
-                  height: 200,
-                  objectFit: "cover",
-                  display: "block",
-                }}
+              <h3 style={{
+                color: "var(--text)",
+                fontSize: 13,
+                fontWeight: 600,
+                marginBottom: 16,
+                fontFamily: "var(--font-mono)",
+                textTransform: "uppercase",
+                letterSpacing: 1,
+              }}>
+                Annotate Image
+              </h3>
+              <AnnotationCanvas
+                imageId={image.id}
+                imageUrl={image.url}
+                existingAnnotations={image.annotations as object[] ?? []}
               />
             </div>
           ))}

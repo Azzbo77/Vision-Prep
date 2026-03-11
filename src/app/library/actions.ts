@@ -77,3 +77,12 @@ export async function uploadStepImage(formData: FormData) {
 
   revalidatePath("/library");
 }
+
+export async function saveAnnotations(imageId: string, annotations: object[]) {
+  await supabase
+    .from("StepImage")
+    .update({ annotations: annotations })
+    .eq("id", imageId);
+
+  revalidatePath("/library");
+}
