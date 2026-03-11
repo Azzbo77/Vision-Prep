@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { completeStep, uncompleteStep } from "./actions";
+import { completeStep, uncompleteStep, reportIssue } from "./actions";
 import AnnotationViewer from "./AnnotationViewer";
 
 interface Part {
@@ -55,6 +55,10 @@ export default function BuilderView({ build, buildSteps, completedIds }: Props) 
   const [activeIndex, setActiveIndex] = useState(0);
   const [completed, setCompleted] = useState(new Set(completedIds));
   const [reporting, setReporting] = useState(false);
+  const [issueType, setIssueType] = useState("OTHER");
+  const [issueDescription, setIssueDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const router = useRouter();
 
   const activeBuildStep = buildSteps[activeIndex];
@@ -310,6 +314,144 @@ export default function BuilderView({ build, buildSteps, completedIds }: Props) 
                 {reporting ? "⚠ Reporting..." : "Flag Issue"}
               </button>
             </div>
+
+            {reporting && (
+              <div style={{
+                marginTop: 14,
+                background: "rgba(245,166,35,0.05)",
+                border: "1px solid rgba(245,166,35,0.3)",
+                borderRadius: 10,
+                padding: "16px 20px",
+              }}>
+                <div style={{
+                  color: "var(--warning)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  marginBottom: 12,
+                  fontFamily: "var(--font-sans)",
+                }}>
+                  Report an Issue
+                </div>
+
+                {/* Issue type */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                  {[
+                    { value: "WRONG_PART", label: "Wrong Part" },
+                    { value: "MISSING_PART", label: "Missing Part" },
+                    { value: "WRONG_TOOL", label: "Wrong Tool" },
+                    { value: "UNCLEAR_INSTRUCTIONS", label: "Unclear Instructions" },
+                    { value: "DAMAGED_COMPONENT", label: "Damaged Component" },
+                    { value: "OTHER", label: "Other" },
+                  ].map((t) => (
+                    <button
+                      key={t.value}
+                      onClick={() => setIssueType(t.value)}
+                      style={{
+                        background: issueType === t.value ? "rgba(245,166,35,0.15)" : "var(--surface-high)",
+                        border: `1px solid ${issueType === t.value ? "var(--warning)" : "var(--border)"}`,
+                        borderRadius: 6,
+                        padding: "5px 12px",
+                        fontSize: 12,
+                        color: issueType === t.value ? "var(--warning)" : "var(--text-muted)",
+                        cursor: "pointer",
+                        fontFamily: "var(--font-sans)",
+                        transition: "all 0.12s",
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Description */}
+                <textarea
+                  placeholder="Describe the issue..."
+                  value={issueDescription}
+                  onChange={(e) => setIssueDescription(e.target.value)}
+                  rows={3}
+                  style={{
+                    width: "100%",
+                    background: "var(--surface-high)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 7,
+                    padding: "10px 12px",
+                    color: "var(--text)",
+                    fontSize: 13,
+                    fontFamily: "var(--font-sans)",
+                    resize: "vertical",
+                    outline: "none",
+                    boxSizing: "border-box",
+                    marginBottom: 10,
+                  }}
+                />
+
+                {/* Submit */}
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <button
+                    onClick={async () => {
+                      if (!issueDescription.trim()) return;
+                      setSubmitting(true);
+                      await reportIssue(
+                        activeBuildStep.id,
+                        build.id,
+                        issueType,
+                        issueDescription.trim()
+                      );
+                      setSubmitting(false);
+                      setSubmitted(true);
+                      setIssueDescription("");
+                      setReporting(false);
+                      setTimeout(() => setSubmitted(false), 3000);
+                    }}
+                    disabled={submitting || !issueDescription.trim()}
+                    style={{
+                      background: "var(--warning)",
+                      border: "none",
+                      borderRadius: 7,
+                      padding: "9px 20px",
+                      color: "#000",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: submitting ? "not-allowed" : "pointer",
+                      fontFamily: "var(--font-sans)",
+                      opacity: submitting || !issueDescription.trim() ? 0.6 : 1,
+                    }}
+                  >
+                    {submitting ? "Submitting..." : "Submit Report"}
+                  </button>
+                  <button
+                    onClick={() => { setReporting(false); setIssueDescription(""); }}
+                    style={{
+                      background: "none",
+                      border: "1px solid var(--border)",
+                      borderRadius: 7,
+                      padding: "9px 16px",
+                      color: "var(--text-muted)",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      fontFamily: "var(--font-sans)",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {submitted && (
+              <div style={{
+                marginTop: 10,
+                background: "rgba(46,204,138,0.1)",
+                border: "1px solid var(--success)",
+                borderRadius: 8,
+                padding: "10px 16px",
+                color: "var(--success)",
+                fontSize: 13,
+                fontFamily: "var(--font-sans)",
+              }}>
+                ✓ Issue reported — supervisor has been notified
+              </div>
+            )}
 
             {/* Build complete banner */}
             {completedCount === totalSteps && totalSteps > 0 && (

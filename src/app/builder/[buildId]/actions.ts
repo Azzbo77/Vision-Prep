@@ -24,3 +24,24 @@ export async function uncompleteStep(buildStepId: string, buildId: string) {
 
   revalidatePath(`/builder/${buildId}`);
 }
+
+export async function reportIssue(
+  buildStepId: string,
+  buildId: string,
+  type: string,
+  description: string
+) {
+  const { error } = await supabase.from("IssueReport").insert({
+    id: createId(),
+    buildStepId,
+    reporterId: "poc-user",
+    type,
+    status: "OPEN",
+    description,
+    imageUrls: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+
+  revalidatePath(`/builder/${buildId}`);
+}
