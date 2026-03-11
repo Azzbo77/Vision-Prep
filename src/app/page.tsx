@@ -1,9 +1,36 @@
-export default function Home() {
+import { supabase } from "@/lib/supabase";
+import DashboardClient from "./DashboardClient";
+
+export default async function DashboardPage() {
+  const { data: builds } = await supabase
+    .from("Build")
+    .select(`
+      *,
+      buildSteps:BuildStep(
+        id,
+        completions:StepCompletion(id)
+      )
+    `)
+    .neq("status", "ARCHIVED")
+    .order("createdAt", { ascending: false });
+
+  const { data: issues } = await supabase
+    .from("IssueReport")
+    .select(`
+      *,
+      buildStep:BuildStep(
+        id,
+        step:Step(title)
+      )
+    `)
+    .eq("status", "OPEN")
+    .order("createdAt", { ascending: false })
+    .limit(10);
+
   return (
-    <div style={{ padding: 32 }}>
-      <h1 style={{ color: "var(--text)", fontFamily: "var(--font-sans)", fontSize: 22 }}>
-        Dashboard coming soon
-      </h1>
-    </div>
+    <DashboardClient
+      initialBuilds={builds ?? []}
+      initialIssues={issues ?? []}
+    />
   );
 }
