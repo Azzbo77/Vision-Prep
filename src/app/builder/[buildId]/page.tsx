@@ -41,11 +41,12 @@ export default async function BuilderPage({
   }
 
   const completedIds = new Set(completions?.map((c) => c.buildStepId) ?? []);
+  const validBuildSteps = buildSteps.filter((bs) => bs.step !== null);
 
   return (
     <BuilderView
       build={build}
-      buildSteps={buildSteps}
+      buildSteps={validBuildSteps}
       completedIds={Array.from(completedIds)}
     />
   );
