@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { createFolder, deleteFolder } from "./actions";
 
@@ -114,7 +115,10 @@ export default async function LibraryPage() {
             }}
           >
             <span style={{ fontSize: 22 }}>📁</span>
-            <div style={{ flex: 1 }}>
+            <Link
+              href={`/library/${folder.id}`}
+              style={{ textDecoration: "none", flex: 1 }}
+            >
               <div style={{ color: "var(--text)", fontWeight: 600, fontSize: 14 }}>
                 {folder.name}
               </div>
@@ -123,7 +127,7 @@ export default async function LibraryPage() {
                   {folder.description}
                 </div>
               )}
-            </div>
+            </Link>
             <form action={deleteFolder.bind(null, folder.id)}>
               <button
                 type="submit"
