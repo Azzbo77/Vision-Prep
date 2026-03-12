@@ -1,4 +1,7 @@
-import { supabase } from "@/lib/supabase";
+export const dynamic = "force-dynamic";
+
+import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { redirect } from "next/navigation";
 import BuilderView from "./BuilderView";
 
 export default async function BuilderPage({
@@ -7,6 +10,10 @@ export default async function BuilderPage({
   params: Promise<{ buildId: string }>;
 }) {
   const { buildId } = await params;
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
 
   const { data: build } = await supabase
     .from("Build")
@@ -30,7 +37,7 @@ export default async function BuilderPage({
   const { data: completions } = await supabase
     .from("StepCompletion")
     .select("buildStepId")
-    .eq("userId", "poc-user");
+    .eq("userId", user.id);
 
   if (!build || !buildSteps) {
     return (
@@ -48,6 +55,7 @@ export default async function BuilderPage({
       build={build}
       buildSteps={validBuildSteps}
       completedIds={Array.from(completedIds)}
+      userId={user.id}
     />
   );
 }

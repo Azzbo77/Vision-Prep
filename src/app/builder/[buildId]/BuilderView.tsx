@@ -49,9 +49,10 @@ interface Props {
   build: Build;
   buildSteps: BuildStep[];
   completedIds: string[];
+  userId: string;
 }
 
-export default function BuilderView({ build, buildSteps, completedIds }: Props) {
+export default function BuilderView({ build, buildSteps, completedIds, userId }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [completed, setCompleted] = useState(new Set(completedIds));
   const [reporting, setReporting] = useState(false);
