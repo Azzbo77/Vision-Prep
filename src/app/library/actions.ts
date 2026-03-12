@@ -1,5 +1,4 @@
 "use server";
-
 import { supabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 import { createId } from "@paralleldrive/cuid2";
@@ -7,53 +6,49 @@ import { createId } from "@paralleldrive/cuid2";
 export async function createFolder(formData: FormData) {
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
-
   if (!name?.trim()) return;
-
-  await supabase.from("Folder").insert({
+  const { error } = await supabase.from("Folder").insert({
     id: createId(),
     name: name.trim(),
     description: description?.trim() || null,
     updatedAt: new Date().toISOString(),
   });
-
+  if (error) console.error("createFolder:", error.message);
   revalidatePath("/library");
 }
 
 export async function deleteFolder(id: string) {
-  await supabase.from("Folder").delete().eq("id", id);
+  const { error } = await supabase.from("Folder").delete().eq("id", id);
+  if (error) console.error("deleteFolder:", error.message);
   revalidatePath("/library");
 }
+
 export async function createStep(formData: FormData) {
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   const folderId = formData.get("folderId") as string;
-
   if (!title?.trim()) return;
-
-  await supabase.from("Step").insert({
+  const { error } = await supabase.from("Step").insert({
     id: createId(),
     title: title.trim(),
     description: description?.trim() || "",
     folderId: folderId || null,
     updatedAt: new Date().toISOString(),
   });
-
+  if (error) console.error("createStep:", error.message);
   revalidatePath("/library");
 }
 
 export async function deleteStep(id: string, folderId: string) {
-  await supabase.from("Step").delete().eq("id", id);
+  const { error } = await supabase.from("Step").delete().eq("id", id);
+  if (error) console.error("deleteStep:", error.message);
   revalidatePath(`/library/${folderId}`);
 }
 
 export async function uploadStepImage(formData: FormData) {
   const file = formData.get("file") as File;
   const stepId = formData.get("stepId") as string;
-
-  if (!file || !stepId) {
-    return;
-  }
+  if (!file || !stepId) return;
 
   const fileExt = file.name.split(".").pop();
   const fileName = `${createId()}.${fileExt}`;
@@ -62,8 +57,10 @@ export async function uploadStepImage(formData: FormData) {
   const { error: uploadError } = await supabase.storage
     .from("step-images")
     .upload(filePath, file);
-
-  if (uploadError) return;
+  if (uploadError) {
+    console.error("uploadStepImage (storage):", uploadError.message);
+    return;
+  }
 
   const { data: { publicUrl } } = supabase.storage
     .from("step-images")
@@ -74,15 +71,15 @@ export async function uploadStepImage(formData: FormData) {
     stepId,
     url: publicUrl,
   });
-
+  if (dbError) console.error("uploadStepImage (db):", dbError.message);
   revalidatePath("/library");
 }
 
 export async function saveAnnotations(imageId: string, annotations: object[]) {
-  await supabase
+  const { error } = await supabase
     .from("StepImage")
-    .update({ annotations: annotations })
+    .update({ annotations })
     .eq("id", imageId);
-
+  if (error) console.error("saveAnnotations:", error.message);
   revalidatePath("/library");
 }
