@@ -25,10 +25,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={`${dmSans.variable} ${dmMono.variable}`}>
+    <html lang="en" className="w-full">
+      <body className={`${dmSans.variable} ${dmMono.variable} w-full min-h-screen`}>
         <NavBar />
-        <main>{children}</main>
+        <main className="w-full">{children}</main>
       </body>
     </html>
   );

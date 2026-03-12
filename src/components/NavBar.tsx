@@ -1,5 +1,4 @@
 "use client";
-
 import { usePathname, useRouter } from "next/navigation";
 
 const tabs = [
@@ -26,7 +25,6 @@ export default function NavBar() {
       top: 0,
       zIndex: 50,
     }}>
-      {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 16 }}>
         <div style={{
           width: 28, height: 28,
@@ -44,7 +42,6 @@ export default function NavBar() {
         }}>VISION PREP</span>
       </div>
 
-      {/* Tabs */}
       {tabs.map((tab) => {
         const isActive = pathname === tab.href;
         return (
@@ -68,7 +65,6 @@ export default function NavBar() {
         );
       })}
 
-      {/* Status indicator */}
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{
           width: 8, height: 8,
