@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { supabase } from "@/lib/supabase";
 import { createBuild, deleteBuild } from "./actions";
 import Link from "next/link";
