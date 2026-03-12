@@ -1,16 +1,36 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
 
-const tabs = [
-  { label: "Dashboard", href: "/" },
-  { label: "Builds", href: "/builds" },
-  { label: "Library", href: "/library" },
-  { label: "Builder View", href: "/builder" },
+const allTabs = [
+  { label: "Dashboard", href: "/", roles: ["ADMIN", "SUPERVISOR"] },
+  { label: "Builds", href: "/builds", roles: ["ADMIN", "SUPERVISOR"] },
+  { label: "Library", href: "/library", roles: ["ADMIN"] },
+  { label: "Builder View", href: "/builder", roles: ["ADMIN", "SUPERVISOR", "BUILDER"] },
 ];
 
-export default function NavBar() {
+interface Props {
+  role: string | null;
+}
+
+export default function NavBar({ role }: Props) {
   const pathname = usePathname();
   const router = useRouter();
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
+  const tabs = role
+    ? allTabs.filter((tab) => tab.roles.includes(role))
+    : [];
 
   return (
     <nav style={{
@@ -25,6 +45,7 @@ export default function NavBar() {
       top: 0,
       zIndex: 50,
     }}>
+      {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 16 }}>
         <div style={{
           width: 28, height: 28,
@@ -42,6 +63,7 @@ export default function NavBar() {
         }}>VISION PREP</span>
       </div>
 
+      {/* Tabs */}
       {tabs.map((tab) => {
         const isActive = pathname === tab.href;
         return (
@@ -65,18 +87,38 @@ export default function NavBar() {
         );
       })}
 
-      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{
-          width: 8, height: 8,
-          borderRadius: "50%",
-          background: "var(--success)",
-          boxShadow: "0 0 6px var(--success)",
-        }} />
-        <span style={{
-          color: "var(--text-muted)",
-          fontSize: 12,
-          fontFamily: "var(--font-mono)",
-        }}>v0.1.0-alpha</span>
+      {/* Right side */}
+      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 8, height: 8,
+            borderRadius: "50%",
+            background: "var(--success)",
+            boxShadow: "0 0 6px var(--success)",
+          }} />
+          <span style={{
+            color: "var(--text-muted)",
+            fontSize: 12,
+            fontFamily: "var(--font-mono)",
+          }}>v0.1.0-alpha</span>
+        </div>
+        {role && (
+          <button
+            onClick={handleSignOut}
+            style={{
+              background: "none",
+              border: "1px solid var(--border)",
+              borderRadius: 6,
+              padding: "4px 12px",
+              color: "var(--text-muted)",
+              fontSize: 12,
+              fontFamily: "var(--font-sans)",
+              cursor: "pointer",
+            }}
+          >
+            Sign Out
+          </button>
+        )}
       </div>
     </nav>
   );
