@@ -1,154 +1,175 @@
 export const dynamic = "force-dynamic";
 
+import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { redirect } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import { createFolder, deleteFolder } from "./actions";
 
 export default async function LibraryPage() {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
   const { data: folders } = await supabase
     .from("Folder")
-    .select("*, steps:Step(count)")
-    .order("createdAt", { ascending: true });
+    .select("*, steps:Step(id)")
+    .order("createdAt", { ascending: false });
 
   return (
-    <div style={{ padding: 32, maxWidth: 900 }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
-        <div>
-          <h1 style={{ color: "var(--text)", fontFamily: "var(--font-sans)", fontSize: 22, fontWeight: 700 }}>
-            Instruction Library
-          </h1>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
-            Organise your reusable steps into folders
-          </p>
-        </div>
+    <div style={{ padding: 32 }}>
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{
+          color: "var(--text)",
+          fontFamily: "var(--font-sans)",
+          fontSize: 22,
+          fontWeight: 700,
+          marginBottom: 4,
+        }}>
+          Library
+        </h1>
+        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
+          Manage your instruction folders and steps
+        </p>
       </div>
-
       {/* Create folder form */}
-      <div style={{
+      <form action={createFolder} style={{
         background: "var(--surface)",
         border: "1px solid var(--border)",
         borderRadius: 12,
-        padding: 24,
+        padding: "20px 24px",
         marginBottom: 24,
+        display: "flex",
+        gap: 12,
+        alignItems: "flex-end",
       }}>
-        <h2 style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
-          New Folder
-        </h2>
-        <form action={createFolder} style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ flex: 1 }}>
+          <label style={{
+            display: "block",
+            color: "var(--text-muted)",
+            fontSize: 12,
+            fontFamily: "var(--font-sans)",
+            marginBottom: 6,
+          }}>
+            Folder Name
+          </label>
           <input
             name="name"
-            placeholder="Folder name"
+            placeholder="e.g. Chassis Assembly"
             required
             style={{
-              flex: 1,
-              minWidth: 200,
+              width: "100%",
               background: "var(--surface-high)",
               border: "1px solid var(--border)",
               borderRadius: 8,
-              padding: "10px 14px",
+              padding: "10px 12px",
               color: "var(--text)",
               fontSize: 13,
               fontFamily: "var(--font-sans)",
               outline: "none",
+              boxSizing: "border-box",
             }}
           />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={{
+            display: "block",
+            color: "var(--text-muted)",
+            fontSize: 12,
+            fontFamily: "var(--font-sans)",
+            marginBottom: 6,
+          }}>
+            Description (optional)
+          </label>
           <input
             name="description"
-            placeholder="Description (optional)"
+            placeholder="Brief description..."
             style={{
-              flex: 2,
-              minWidth: 200,
+              width: "100%",
               background: "var(--surface-high)",
               border: "1px solid var(--border)",
               borderRadius: 8,
-              padding: "10px 14px",
+              padding: "10px 12px",
               color: "var(--text)",
               fontSize: 13,
               fontFamily: "var(--font-sans)",
               outline: "none",
+              boxSizing: "border-box",
             }}
           />
-          <button
-            type="submit"
-            style={{
-              background: "var(--accent)",
-              border: "none",
-              borderRadius: 8,
-              padding: "10px 20px",
-              color: "#fff",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-              fontFamily: "var(--font-sans)",
-            }}
-          >
-            + Create Folder
-          </button>
-        </form>
-      </div>
-
-      {/* Folder list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {(!folders || folders.length === 0) && (
-          <div style={{
+        </div>
+        <button type="submit" style={{
+          background: "var(--accent)",
+          border: "none",
+          borderRadius: 8,
+          padding: "10px 20px",
+          color: "#fff",
+          fontSize: 13,
+          fontFamily: "var(--font-sans)",
+          fontWeight: 600,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+        }}>
+          + New Folder
+        </button>
+      </form>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 24 }}>
+        {folders?.map((folder) => (
+          <div key={folder.id} style={{
             background: "var(--surface)",
             border: "1px solid var(--border)",
             borderRadius: 12,
-            padding: 40,
-            textAlign: "center",
-            color: "var(--text-muted)",
-            fontSize: 13,
+            padding: "16px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
           }}>
-            No folders yet — create one above to get started
-          </div>
-        )}
-        {folders?.map((folder) => (
-          <div
-            key={folder.id}
-            style={{
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: 12,
-              padding: "18px 24px",
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-            }}
-          >
-            <span style={{ fontSize: 22 }}>📁</span>
-            <Link
-              href={`/library/${folder.id}`}
-              style={{ textDecoration: "none", flex: 1 }}
-            >
-              <div style={{ color: "var(--text)", fontWeight: 600, fontSize: 14 }}>
-                {folder.name}
-              </div>
-              {folder.description && (
-                <div style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>
-                  {folder.description}
-                </div>
-              )}
+            <Link href={`/library/${folder.id}`} style={{
+              flex: 1,
+              color: "var(--text)",
+              textDecoration: "none",
+              fontFamily: "var(--font-sans)",
+              fontSize: 14,
+              fontWeight: 500,
+            }}>
+              📁 {folder.name}
+              <span style={{
+                color: "var(--text-muted)",
+                fontSize: 12,
+                fontFamily: "var(--font-mono)",
+                marginLeft: 12,
+              }}>
+                {folder.steps?.length ?? 0} steps
+              </span>
             </Link>
             <form action={deleteFolder.bind(null, folder.id)}>
-              <button
-                type="submit"
-                style={{
-                  background: "none",
-                  border: "1px solid var(--border)",
-                  borderRadius: 6,
-                  padding: "5px 12px",
-                  color: "var(--text-muted)",
-                  fontSize: 12,
-                  cursor: "pointer",
-                  fontFamily: "var(--font-sans)",
-                }}
-              >
+              <button type="submit" style={{
+                background: "none",
+                border: "1px solid var(--border)",
+                borderRadius: 6,
+                padding: "4px 12px",
+                color: "var(--danger)",
+                fontSize: 12,
+                cursor: "pointer",
+                fontFamily: "var(--font-sans)",
+              }}>
                 Delete
               </button>
             </form>
           </div>
         ))}
+        {(!folders || folders.length === 0) && (
+          <div style={{
+            color: "var(--text-muted)",
+            fontSize: 13,
+            textAlign: "center",
+            padding: "48px 0",
+            background: "var(--surface)",
+            borderRadius: 12,
+            border: "1px solid var(--border)",
+          }}>
+            No folders yet — create one above
+          </div>
+        )}
       </div>
     </div>
   );

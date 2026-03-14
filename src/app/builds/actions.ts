@@ -1,5 +1,5 @@
 "use server";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -7,6 +7,7 @@ export async function createBuild(formData: FormData) {
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   if (!title?.trim()) return;
+  const supabase = await createSupabaseServerClient();
   const { error } = await supabase.from("Build").insert({
     id: createId(),
     title: title.trim(),
@@ -20,12 +21,14 @@ export async function createBuild(formData: FormData) {
 }
 
 export async function deleteBuild(id: string) {
+  const supabase = await createSupabaseServerClient();
   const { error } = await supabase.from("Build").delete().eq("id", id);
   if (error) console.error("deleteBuild:", error.message);
   revalidatePath("/builds");
 }
 
 export async function addStepToBuild(buildId: string, stepId: string, order: number) {
+  const supabase = await createSupabaseServerClient();
   const { error } = await supabase.from("BuildStep").insert({
     id: createId(),
     buildId,
@@ -37,12 +40,14 @@ export async function addStepToBuild(buildId: string, stepId: string, order: num
 }
 
 export async function removeStepFromBuild(buildStepId: string, buildId: string) {
+  const supabase = await createSupabaseServerClient();
   const { error } = await supabase.from("BuildStep").delete().eq("id", buildStepId);
   if (error) console.error("removeStepFromBuild:", error.message);
   revalidatePath(`/builds/${buildId}`);
 }
 
 export async function updateBuildStatus(buildId: string, status: string) {
+  const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from("Build")
     .update({ status, updatedAt: new Date().toISOString() })

@@ -1,18 +1,13 @@
 "use server";
-
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { createId } from "@paralleldrive/cuid2";
 import { revalidatePath } from "next/cache";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-
-async function getCurrentUserId(): Promise<string> {
-  const supabaseServer = await createSupabaseServerClient();
-  const { data: { user } } = await supabaseServer.auth.getUser();
-  return user?.id ?? "poc-user";
-}
 
 export async function completeStep(buildStepId: string, buildId: string) {
-  const userId = await getCurrentUserId();
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
+  if (!userId) return;
   const { error } = await supabase.from("StepCompletion").insert({
     id: createId(),
     buildStepId,
@@ -24,7 +19,10 @@ export async function completeStep(buildStepId: string, buildId: string) {
 }
 
 export async function uncompleteStep(buildStepId: string, buildId: string) {
-  const userId = await getCurrentUserId();
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
+  if (!userId) return;
   const { error } = await supabase
     .from("StepCompletion")
     .delete()
@@ -40,7 +38,10 @@ export async function reportIssue(
   type: string,
   description: string
 ) {
-  const userId = await getCurrentUserId();
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
+  if (!userId) return;
   const { error } = await supabase.from("IssueReport").insert({
     id: createId(),
     buildStepId,

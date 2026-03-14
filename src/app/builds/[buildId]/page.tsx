@@ -1,4 +1,7 @@
-import { supabase } from "@/lib/supabase";
+export const dynamic = "force-dynamic";
+
+import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { redirect } from "next/navigation";
 import { addStepToBuild, removeStepFromBuild, updateBuildStatus } from "../actions";
 import Link from "next/link";
 import StepLibrary from "./StepLibrary";
@@ -9,6 +12,9 @@ export default async function BuildPage({
   params: Promise<{ buildId: string }>;
 }) {
   const { buildId } = await params;
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: build } = await supabase
     .from("Build")
@@ -36,68 +42,112 @@ export default async function BuildPage({
 
   return (
     <div style={{ padding: 32, maxWidth: 900 }}>
-      {/* Header */}
       <div style={{ marginBottom: 32 }}>
-        <Link
-          href="/builds"
-          style={{
-            color: "var(--text-muted)",
-            fontSize: 13,
-            textDecoration: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            marginBottom: 12,
-          }}
-        >
+        <Link href="/builds" style={{
+          color: "var(--text-muted)",
+          fontSize: 13,
+          textDecoration: "none",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          marginBottom: 12,
+        }}>
           ← Back to Builds
         </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <h1 style={{ color: "var(--text)", fontFamily: "var(--font-sans)", fontSize: 22, fontWeight: 700, flex: 1 }}>
-            {build.title}
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 8 }}>
+          <h1 style={{
+            color: "var(--text)",
+            fontFamily: "var(--font-sans)",
+            fontSize: 22,
+            fontWeight: 700,
+          }}>
+            🔧 {build.title}
           </h1>
-          {build.status === "DRAFT" && (
-            <form action={updateBuildStatus.bind(null, buildId, "ACTIVE")}>
-              <button
-                type="submit"
-                style={{
-                  background: "var(--success)",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "8px 18px",
-                  color: "#fff",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  fontFamily: "var(--font-sans)",
-                }}
-              >
-                ▶ Activate Build
-              </button>
-            </form>
-          )}
-          {build.status === "ACTIVE" && (
-            <Link
-              href={`/builder/${buildId}`}
-              style={{
-                background: "var(--accent)",
-                borderRadius: 8,
-                padding: "8px 18px",
-                color: "#fff",
-                fontSize: 13,
-                fontWeight: 600,
-                textDecoration: "none",
-                fontFamily: "var(--font-sans)",
-              }}
-            >
-              → Open in Builder
-            </Link>
-          )}
+          <span style={{
+            fontSize: 11,
+            fontFamily: "var(--font-mono)",
+            color: build.status === "ACTIVE" ? "var(--accent)" : "var(--text-muted)",
+            background: build.status === "ACTIVE" ? "rgba(79,127,255,0.1)" : "var(--surface-high)",
+            border: `1px solid ${build.status === "ACTIVE" ? "var(--accent)" : "var(--border)"}`,
+            borderRadius: 99,
+            padding: "3px 10px",
+          }}>
+            {build.status}
+          </span>
         </div>
         {build.description && (
-          <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 8 }}>
-            {build.description}
-          </p>
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{build.description}</p>
+        )}
+      </div>
+
+      {/* Status actions */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 32 }}>
+        {build.status === "DRAFT" && (
+          <form action={updateBuildStatus.bind(null, buildId, "ACTIVE")}>
+            <button type="submit" style={{
+              background: "var(--accent)",
+              border: "none",
+              borderRadius: 8,
+              padding: "10px 20px",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "var(--font-sans)",
+            }}>
+              Activate Build
+            </button>
+          </form>
+        )}
+        {build.status === "ACTIVE" && (
+          <>
+            <form action={updateBuildStatus.bind(null, buildId, "PAUSED")}>
+              <button type="submit" style={{
+                background: "none",
+                border: "1px solid var(--warning)",
+                borderRadius: 8,
+                padding: "10px 20px",
+                color: "var(--warning)",
+                fontSize: 13,
+                cursor: "pointer",
+                fontFamily: "var(--font-sans)",
+              }}>
+                Pause Build
+              </button>
+            </form>
+            <Link href={`/builder/${buildId}`} style={{
+              background: "var(--success)",
+              border: "none",
+              borderRadius: 8,
+              padding: "10px 20px",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "var(--font-sans)",
+              textDecoration: "none",
+              display: "inline-block",
+            }}>
+              → Open in Builder
+            </Link>
+          </>
+        )}
+        {build.status === "PAUSED" && (
+          <form action={updateBuildStatus.bind(null, buildId, "ACTIVE")}>
+            <button type="submit" style={{
+              background: "var(--accent)",
+              border: "none",
+              borderRadius: 8,
+              padding: "10px 20px",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "var(--font-sans)",
+            }}>
+              Resume Build
+            </button>
+          </form>
         )}
       </div>
 
@@ -110,67 +160,61 @@ export default async function BuildPage({
         marginBottom: 24,
       }}>
         <h2 style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
-          Build Steps ({buildSteps?.length ?? 0})
+          Steps in this Build ({buildSteps?.length ?? 0})
         </h2>
-        {(!buildSteps || buildSteps.length === 0) && (
-          <div style={{ color: "var(--text-muted)", fontSize: 13, padding: "12px 0" }}>
-            No steps linked yet — add steps from the library below
+        {(!buildSteps || buildSteps.length === 0) ? (
+          <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
+            No steps linked yet — add from the library below
           </div>
-        )}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {buildSteps?.map((bs, index) => (
-            <div
-              key={bs.id}
-              style={{
-                background: "var(--surface-high)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                padding: "12px 16px",
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {buildSteps.map((bs, index) => (
+              <div key={bs.id} style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
-              }}
-            >
-              <div style={{
-                width: 24,
-                height: 24,
-                borderRadius: "50%",
-                background: "var(--accent)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 11,
-                color: "#fff",
-                fontFamily: "var(--font-mono)",
-                flexShrink: 0,
+                padding: "10px 14px",
+                background: "var(--surface-high)",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
               }}>
-                {index + 1}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ color: "var(--text)", fontSize: 13, fontWeight: 500 }}>
+                <span style={{
+                  width: 24,
+                  height: 24,
+                  background: "var(--accent)",
+                  borderRadius: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontSize: 11,
+                  fontFamily: "var(--font-mono)",
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}>
+                  {index + 1}
+                </span>
+                <span style={{ flex: 1, color: "var(--text)", fontSize: 13 }}>
                   {bs.step?.title}
-                </div>
-              </div>
-              <form action={removeStepFromBuild.bind(null, bs.id, buildId)}>
-                <button
-                  type="submit"
-                  style={{
+                </span>
+                <form action={removeStepFromBuild.bind(null, bs.id, buildId)}>
+                  <button type="submit" style={{
                     background: "none",
                     border: "1px solid var(--border)",
                     borderRadius: 6,
-                    padding: "4px 10px",
-                    color: "var(--text-muted)",
+                    padding: "3px 10px",
+                    color: "var(--danger)",
                     fontSize: 11,
                     cursor: "pointer",
                     fontFamily: "var(--font-sans)",
-                  }}
-                >
-                  Remove
-                </button>
-              </form>
-            </div>
-          ))}
-        </div>
+                  }}>
+                    Remove
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Step library */}
