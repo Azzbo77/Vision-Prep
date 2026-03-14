@@ -55,3 +55,25 @@ export async function updateBuildStatus(buildId: string, status: string) {
   if (error) console.error("updateBuildStatus:", error.message);
   revalidatePath(`/builds/${buildId}`);
 }
+
+export async function assignBuilder(buildId: string, userId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("BuildAssignment").insert({
+    id: createId(),
+    buildId,
+    userId,
+    assignedAt: new Date().toISOString(),
+  });
+  if (error) console.error("assignBuilder:", error.message);
+  revalidatePath(`/builds/${buildId}/assignments`);
+}
+
+export async function unassignBuilder(assignmentId: string, buildId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("BuildAssignment")
+    .delete()
+    .eq("id", assignmentId);
+  if (error) console.error("unassignBuilder:", error.message);
+  revalidatePath(`/builds/${buildId}/assignments`);
+}

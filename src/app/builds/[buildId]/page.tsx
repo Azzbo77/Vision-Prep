@@ -149,6 +149,20 @@ export default async function BuildPage({
             </button>
           </form>
         )}
+        <Link href={`/builds/${buildId}/assignments`} style={{
+          background: "none",
+          border: "1px solid var(--border)",
+          borderRadius: 8,
+          padding: "10px 20px",
+          color: "var(--text-muted)",
+          fontSize: 13,
+          cursor: "pointer",
+          fontFamily: "var(--font-sans)",
+          textDecoration: "none",
+          display: "inline-block",
+        }}>
+          👥 Manage Assignments
+        </Link>
       </div>
 
       {/* Linked steps */}
