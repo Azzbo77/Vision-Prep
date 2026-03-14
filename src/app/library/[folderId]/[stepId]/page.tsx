@@ -74,7 +74,7 @@ export default async function StepPage({
             <AnnotationCanvas
               imageId={image.id}
               imageUrl={image.url}
-              savedAnnotations={image.annotations ?? []}
+              existingAnnotations={image.annotations ?? []}
             />
           </div>
         ))}
