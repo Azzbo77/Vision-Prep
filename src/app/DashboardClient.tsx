@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
+import IssueCard from "./IssueCard";
 
 interface BuildStep {
   id: string;
@@ -45,6 +46,11 @@ export default function DashboardClient({ initialBuilds, initialIssues }: Props)
   const [issues, setIssues] = useState(initialIssues);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
 
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
   useEffect(() => {
     // Subscribe to StepCompletion changes
     const channel = supabase
@@ -74,7 +80,7 @@ export default function DashboardClient({ initialBuilds, initialIssues }: Props)
       )
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "IssueReport" },
+        { event: "*", schema: "public", table: "IssueReport" },
         async () => {
           const { data } = await supabase
             .from("IssueReport")
@@ -85,7 +91,7 @@ export default function DashboardClient({ initialBuilds, initialIssues }: Props)
                 step:Step(title)
               )
             `)
-            .eq("status", "OPEN")
+            .in("status", ["OPEN", "ACKNOWLEDGED"])
             .order("createdAt", { ascending: false })
             .limit(10);
 
@@ -312,53 +318,7 @@ export default function DashboardClient({ initialBuilds, initialIssues }: Props)
             </div>
           )}
           {issues.map((issue) => (
-            <div
-              key={issue.id}
-              style={{
-                background: "var(--surface-high)",
-                borderRadius: 8,
-                padding: "12px 14px",
-                marginBottom: 10,
-                borderLeft: "3px solid var(--danger)",
-              }}
-            >
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 4,
-              }}>
-                <span style={{
-                  fontSize: 11,
-                  color: "var(--danger)",
-                  fontFamily: "var(--font-mono)",
-                  fontWeight: 600,
-                }}>
-                  {issue.type.replace(/_/g, " ")}
-                </span>
-                <span style={{
-                  fontSize: 11,
-                  color: "var(--text-dim)",
-                  fontFamily: "var(--font-mono)",
-                }}>
-                  {new Date(issue.createdAt).toLocaleTimeString()}
-                </span>
-              </div>
-              <div style={{
-                fontSize: 12,
-                color: "var(--text)",
-                marginBottom: 4,
-              }}>
-                {issue.description}
-              </div>
-              {issue.buildStep?.step && (
-                <div style={{
-                  fontSize: 11,
-                  color: "var(--text-muted)",
-                }}>
-                  Step: {issue.buildStep.step.title}
-                </div>
-              )}
-            </div>
+            <IssueCard key={issue.id} issue={issue} />
           ))}
         </div>
       </div>

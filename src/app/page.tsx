@@ -30,7 +30,7 @@ export default async function DashboardPage() {
         step:Step(title)
       )
     `)
-    .eq("status", "OPEN")
+    .in("status", ["OPEN", "ACKNOWLEDGED"])
     .order("createdAt", { ascending: false })
     .limit(10);
 
