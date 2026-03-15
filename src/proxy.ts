@@ -35,7 +35,8 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // Not logged in — redirect to login
-  if (!user && !request.nextUrl.pathname.startsWith("/login")) {
+  if (!user && !request.nextUrl.pathname.startsWith("/login") &&
+      !request.nextUrl.pathname.startsWith("/auth")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

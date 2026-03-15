@@ -7,6 +7,7 @@ const allTabs = [
   { label: "Builds", href: "/builds", roles: ["ADMIN", "SUPERVISOR"] },
   { label: "Library", href: "/library", roles: ["ADMIN"] },
   { label: "Builder View", href: "/builder", roles: ["ADMIN", "SUPERVISOR", "BUILDER"] },
+  { label: "Users", href: "/admin/users", roles: ["ADMIN"] },
 ];
 
 interface Props {
