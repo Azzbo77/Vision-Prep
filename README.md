@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Status: POC Complete](https://img.shields.io/badge/Status-POC%20Complete-green.svg)]()
+[![Status: Phase 2 Complete](https://img.shields.io/badge/Status-Phase%202%20Complete-blue.svg)]()
 
 ---
 
@@ -22,44 +22,68 @@ Suited for:
 
 ---
 
-## ✅ Current Status — POC Complete
+## ✅ Current Status — Phase 2 Complete
 
-The proof of concept has been built and validated. The full core loop works end to end:
+The platform is fully functional with authentication, role-based access control, and a complete build execution workflow.
 
-- **Admin** creates a folder, adds steps, uploads photos, and annotates images in-browser
-- **Admin** creates a build, links reusable steps from the library, and activates it
-- **Builder** opens the build, follows each step with annotated images, and marks steps complete
+### The core loop works end to end:
+
+- **Admin** creates folders, adds steps, uploads photos, and annotates images in-browser
+- **Admin** creates builds, links reusable steps from the library, activates builds, and assigns builders
+- **Admin** invites users by email and manages roles from the user management page
+- **Builder** opens assigned builds, follows each step with annotated images, marks steps complete or skips with a reason
+- **Builder** flags issues — they appear instantly in the supervisor dashboard
+- **Builder** receives in-app notifications when their issues are acknowledged or resolved
 - **Supervisor** watches build progress update live on the dashboard without refreshing
-- **Builder** flags an issue — it appears instantly in the supervisor dashboard
+- **Supervisor** acknowledges and resolves issues with resolution notes
 
 ---
 
-## ✨ Features (POC)
+## ✨ Features
 
 ### Admin / Library
 - Organise steps into folders
 - Create reusable steps with title, description, and photos
 - In-browser image annotation — arrows, circles, and text labels
 - Annotations saved as JSON and rendered read-only in the builder view
+- Mark steps as **critical** — builders must confirm completion before advancing
 - Steps are reusable building blocks — link the same step to multiple builds
 
 ### Build Management
 - Create builds and link ordered steps from the library
-- Activate builds to make them available to builders
-- Remove steps or delete builds
+- Activate, pause, and resume builds
+- Assign specific builders to builds
+- Dedicated assignments page per build
 
 ### Builder Execution View
-- Step-by-step guidance with annotated images
-- Sidebar showing all steps and completion status
-- Progress bar tracking completion
+- Landing page showing assigned builds with progress indicators
+- Step-by-step guidance with annotated images and parts lists
+- Sidebar showing all steps and completion status with progress bar
 - Mark steps complete — auto-advances to the next step
+- Critical step confirmation — checkbox required before completing high-risk steps
+- Skip steps with a reason (Parts, Tooling, Instructions, Other) — logged as an issue automatically
 - Flag issues with type selection and description
+- My Issues page — view all reported issues and their current status per build
+- In-app notifications when issues are acknowledged or resolved
 
 ### Live Supervisor Dashboard
 - Real-time build progress across all active builds
 - Step completion counts update live via Supabase Realtime
-- Open issues panel — new issues appear instantly
-- Summary stats — active builds, steps completed, open issues
+- Open issues panel with acknowledge and resolve actions
+- Resolution notes saved against each issue
+- Summary stats — active builds, steps completed, open issues, completed builds
+
+### User Management (Admin)
+- Invite users by email with role selection (Admin, Supervisor, Builder)
+- Invited users receive an email to set their own password
+- View and remove users from the platform
+- Role-based navigation — each role sees only relevant pages
+
+### Security
+- Supabase Auth with email and password
+- Row Level Security (RLS) on all database tables
+- Role-based route protection via Next.js proxy
+- Service role key used only for admin operations
 
 ---
 
@@ -67,13 +91,14 @@ The proof of concept has been built and validated. The full core loop works end 
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 15 (App Router) + TypeScript |
-| UI | Tailwind CSS + shadcn/ui |
+| Frontend | Next.js 16 (App Router) + TypeScript |
+| Styling | Tailwind CSS v4 + CSS variables |
 | Database | Supabase (PostgreSQL) |
+| Auth | Supabase Auth + SSR |
 | Realtime | Supabase Realtime |
 | Image Storage | Supabase Storage |
-| Image Annotation | Fabric.js |
-| ORM | Prisma 5 |
+| Image Annotation | Fabric.js v6 |
+| ORM | Prisma 5 (migrations only) |
 | Deployment | Vercel |
 
 ---
@@ -81,11 +106,12 @@ The proof of concept has been built and validated. The full core loop works end 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- A [Supabase](https://supabase.com) account (free tier)
-- A [Vercel](https://vercel.com) account (free tier, optional)
+- Node.js 20+
+- A [Supabase](https://supabase.com) account (free tier is sufficient)
+- A [Vercel](https://vercel.com) account (optional, for deployment)
 
 ### Local Setup
+
 ```bash
 # Clone the repo
 git clone https://github.com/Azzbo77/Vision-Prep.git
@@ -98,31 +124,53 @@ npm install
 cp .env.example .env.local
 ```
 
-Add your Supabase credentials to `.env.local`:
+Add your credentials to `.env.local`:
+
 ```env
-DATABASE_URL="your-supabase-transaction-pooler-url"
-DIRECT_URL="your-supabase-session-pooler-url"
-NEXT_PUBLIC_SUPABASE_URL="your-supabase-project-url"
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY="your-supabase-anon-key"
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+DATABASE_URL=your-supabase-transaction-pooler-url
+DIRECT_URL=your-supabase-session-pooler-url
 ```
 
 Push the database schema:
+
 ```bash
 npx prisma db push
 ```
 
-Create the POC user in Supabase SQL Editor:
+Create your first admin user in Supabase SQL Editor — first create the user in **Authentication → Users**, then run:
+
 ```sql
 INSERT INTO "User" (id, email, name, role, "createdAt", "updatedAt")
-VALUES ('poc-user', 'builder@visionprep.dev', 'POC Builder', 'BUILDER', now(), now());
+VALUES ('your-auth-user-id', 'admin@example.com', 'Admin', 'ADMIN', now(), now());
 ```
 
+Enable Realtime on the `StepCompletion` and `IssueReport` tables in **Database → Publications → supabase_realtime**.
+
 Start the dev server:
+
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) and sign in.
+
+---
+
+## 🧪 Try It — Live Demo
+
+A live demo is available at [vision-prep.vercel.app](https://vision-prep.vercel.app).
+
+Use the test accounts shown on the login page to explore each role:
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | testadmin@test.com | changeme123 |
+| Supervisor | testsupervisor@test.com | changeme456 |
+| Builder | testbuilder@test.com | changeme789 |
 
 ---
 
@@ -140,21 +188,34 @@ Open [http://localhost:3000](http://localhost:3000).
 - Live supervisor dashboard
 - Issue reporting
 
-### Phase 2 — Next
-- User authentication (Supabase Auth + role-based access)
-- Mobile-optimised builder view / PWA
-- Issue resolution workflow for supervisors
-- Step completion by view time (automatic tracking)
-- Parts and tools catalogue
-- Email notifications for issues
-- Build completion summary
+### ✅ Phase 2 — Complete
+- Supabase Auth with email and password
+- Role-based access (Admin, Supervisor, Builder)
+- Row Level Security on all tables
+- User invite system with email flow
+- Build assignment — assign builders to specific builds
+- Builder landing page with assigned build list
+- Issue resolution workflow — acknowledge and resolve with notes
+- In-app builder notifications for issue updates
+- Critical step confirmation gates
+- Step skip with reason — logged as an issue automatically
 
-### Phase 3 — Future
-- Offline mode
+### Phase 3 — Next
+- Mobile-optimised builder view / PWA
 - Docker / self-hosted deployment
-- Analytics and process improvement insights
-- Inventory system integration
+- Email notifications for issue updates
+- Version control for work instructions
+- Work order processing — link builds to job numbers
+- Parts and tools catalogue with BOM management
+- Analytics — cycle times, completion rates, bottlenecks
+- ERP integration via CSV import
+
+### Phase 4 — Future
+- Offline mode with sync
 - Multi-tenancy
+- Operator training and sign-off workflows
+- Full traceability — who built what and when
+- Quality management — pass/fail checks at steps
 
 ---
 
@@ -162,11 +223,12 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-Great areas to help with right now:
-- Authentication (Supabase Auth + RLS policies)
+Good areas to contribute right now:
 - Mobile UI optimisation
-- Issue resolution workflow
-- Parts catalogue
+- Docker / self-hosted deployment
+- Email notifications (Resend or SendGrid integration)
+- Parts catalogue UI
+- Analytics dashboard
 
 ---
 

@@ -26,7 +26,7 @@ export default async function BuilderPage({
     .select(`
       *,
       step:Step(
-        id, title, description,
+        id, title, description, critical,
         images:StepImage(id, url, annotations),
         parts:StepPart(id, quantity, notes, part:Part(id, name, category))
       )

@@ -49,6 +49,17 @@ export async function deleteStep(id: string, folderId: string) {
   revalidatePath(`/library/${folderId}`);
 }
 
+export async function toggleCritical(stepId: string, folderId: string, formData: FormData) {
+  const critical = formData.get("critical") === "true";
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("Step")
+    .update({ critical, updatedAt: new Date().toISOString() })
+    .eq("id", stepId);
+  if (error) console.error("toggleCritical:", error.message);
+  revalidatePath(`/library/${folderId}`);
+}
+
 export async function uploadStepImage(formData: FormData) {
   const file = formData.get("file") as File;
   const stepId = formData.get("stepId") as string;

@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { toggleCritical } from "../../actions";
 import ImageUploadForm from "./ImageUploadForm";
 import AnnotationCanvas from "./AnnotationCanvas";
 
@@ -64,6 +65,26 @@ export default async function StepPage({
             {step.description}
           </p>
         )}
+
+        {/* Critical toggle */}
+        <form action={toggleCritical.bind(null, step.id, folderId)}>
+          <input type="hidden" name="critical" value={step.critical ? "false" : "true"} />
+          <button type="submit" style={{
+            background: step.critical ? "rgba(255,77,106,0.1)" : "var(--surface)",
+            border: `1px solid ${step.critical ? "var(--danger)" : "var(--border)"}`,
+            borderRadius: 8,
+            padding: "8px 16px",
+            color: step.critical ? "var(--danger)" : "var(--text-muted)",
+            fontSize: 12,
+            cursor: "pointer",
+            fontFamily: "var(--font-sans)",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}>
+            {step.critical ? "⚠ Critical Step — Click to Remove" : "Mark as Critical Step"}
+          </button>
+        </form>
       </div>
 
       <ImageUploadForm stepId={stepId} />

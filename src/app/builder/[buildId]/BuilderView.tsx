@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { completeStep, uncompleteStep, reportIssue } from "./actions";
+import { completeStep, uncompleteStep, reportIssue, skipStep } from "./actions";
 import AnnotationViewer from "./AnnotationViewer";
 import IssueNotification from "./IssueNotification";
 
@@ -30,6 +30,7 @@ interface Step {
   id: string;
   title: string;
   description: string;
+  critical: boolean;
   images: StepImage[];
   parts: StepPart[];
 }
@@ -62,7 +63,17 @@ export default function BuilderView({ build, buildSteps, completedIds, userId }:
   const [issueDescription, setIssueDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  const [skipReason, setSkipReason] = useState("MISSING_PARTS");
+  const [skipDescription, setSkipDescription] = useState("");
+  const [confirmedCritical, setConfirmedCritical] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setConfirmedCritical(false);
+    setSkipping(false);
+    setSkipDescription("");
+  }, [activeIndex]);
 
   const activeBuildStep = buildSteps[activeIndex];
   const activeStep = activeBuildStep?.step;
@@ -179,9 +190,13 @@ export default function BuilderView({ build, buildSteps, completedIds, userId }:
                 color: isActive ? "var(--text)" : isDone ? "var(--text-muted)" : "var(--text-muted)",
                 fontFamily: "var(--font-sans)",
                 lineHeight: 1.3,
+                flex: 1,
               }}>
                 {bs.step?.title}
               </span>
+              {bs.step?.critical && !completed.has(bs.id) && (
+                <span style={{ color: "var(--danger)", fontSize: 10 }}>⚠</span>
+              )}
             </div>
           );
         })}
@@ -281,10 +296,42 @@ export default function BuilderView({ build, buildSteps, completedIds, userId }:
               </div>
             )}
 
+            {/* Critical confirmation */}
+            {activeStep.critical && !isCompleted && (
+              <div style={{
+                background: "rgba(255,77,106,0.08)",
+                border: "1px solid var(--danger)",
+                borderRadius: 10,
+                padding: "14px 18px",
+                marginBottom: 12,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}>
+                <input
+                  type="checkbox"
+                  id="critical-confirm"
+                  checked={confirmedCritical}
+                  onChange={(e) => setConfirmedCritical(e.target.checked)}
+                  style={{ width: 18, height: 18, cursor: "pointer", flexShrink: 0 }}
+                />
+                <label htmlFor="critical-confirm" style={{
+                  color: "var(--danger)",
+                  fontSize: 13,
+                  fontFamily: "var(--font-sans)",
+                  cursor: "pointer",
+                  lineHeight: 1.4,
+                }}>
+                  ⚠ This is a critical step. I confirm I have completed it correctly and checked my work.
+                </label>
+              </div>
+            )}
+
             {/* Actions */}
             <div style={{ display: "flex", gap: 10 }}>
               <button
                 onClick={handleComplete}
+                disabled={activeStep.critical && !confirmedCritical && !isCompleted}
                 style={{
                   flex: 1,
                   background: isCompleted ? "var(--success)" : "var(--accent)",
@@ -295,14 +342,32 @@ export default function BuilderView({ build, buildSteps, completedIds, userId }:
                   fontSize: 14,
                   fontFamily: "var(--font-sans)",
                   fontWeight: 600,
-                  cursor: "pointer",
+                  cursor: (activeStep.critical && !confirmedCritical && !isCompleted) ? "not-allowed" : "pointer",
+                  opacity: (activeStep.critical && !confirmedCritical && !isCompleted) ? 0.5 : 1,
                   transition: "background 0.2s",
                 }}
               >
                 {isCompleted ? "✓ Completed — Click to Undo" : "Mark as Complete"}
               </button>
+              {!isCompleted && (
+                <button
+                  onClick={() => { setSkipping(!skipping); setReporting(false); }}
+                  style={{
+                    background: skipping ? "rgba(122,131,158,0.15)" : "var(--surface)",
+                    border: `1px solid ${skipping ? "var(--text-muted)" : "var(--border)"}`,
+                    borderRadius: 10,
+                    padding: "14px 20px",
+                    color: "var(--text-muted)",
+                    fontSize: 13,
+                    fontFamily: "var(--font-sans)",
+                    cursor: "pointer",
+                  }}
+                >
+                  Skip
+                </button>
+              )}
               <button
-                onClick={() => setReporting(!reporting)}
+                onClick={() => { setReporting(!reporting); setSkipping(false); }}
                 style={{
                   background: reporting ? `rgba(245,166,35,0.1)` : "var(--surface)",
                   border: `1px solid ${reporting ? "var(--warning)" : "var(--border)"}`,
@@ -316,23 +381,115 @@ export default function BuilderView({ build, buildSteps, completedIds, userId }:
               >
                 {reporting ? "⚠ Reporting..." : "Flag Issue"}
               </button>
-              <Link
-                href={`/builder/${build.id}/issues`}
-                style={{
-                  background: "none",
-                  border: "1px solid var(--border)",
-                  borderRadius: 10,
-                  padding: "14px 20px",
+            </div>
+
+            {/* Skip form */}
+            {skipping && (
+              <div style={{
+                marginTop: 14,
+                background: "rgba(122,131,158,0.05)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                padding: "16px 20px",
+              }}>
+                <div style={{
                   color: "var(--text-muted)",
                   fontSize: 13,
+                  fontWeight: 600,
+                  marginBottom: 12,
                   fontFamily: "var(--font-sans)",
-                  textDecoration: "none",
-                  display: "inline-block",
-                }}
-              >
-                My Issues
-              </Link>
-            </div>
+                }}>
+                  Skip Reason
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                  {[
+                    { value: "MISSING_PARTS", label: "Parts" },
+                    { value: "WRONG_TOOL", label: "Tooling" },
+                    { value: "UNCLEAR_INSTRUCTIONS", label: "Instructions" },
+                    { value: "OTHER", label: "Other" },
+                  ].map((r) => (
+                    <button
+                      key={r.value}
+                      onClick={() => setSkipReason(r.value)}
+                      style={{
+                        background: skipReason === r.value ? "rgba(122,131,158,0.2)" : "var(--surface-high)",
+                        border: `1px solid ${skipReason === r.value ? "var(--text-muted)" : "var(--border)"}`,
+                        borderRadius: 6,
+                        padding: "5px 12px",
+                        fontSize: 12,
+                        color: skipReason === r.value ? "var(--text)" : "var(--text-muted)",
+                        cursor: "pointer",
+                        fontFamily: "var(--font-sans)",
+                      }}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  placeholder="Additional notes (optional)..."
+                  value={skipDescription}
+                  onChange={(e) => setSkipDescription(e.target.value)}
+                  rows={2}
+                  style={{
+                    width: "100%",
+                    background: "var(--surface-high)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 7,
+                    padding: "10px 12px",
+                    color: "var(--text)",
+                    fontSize: 13,
+                    fontFamily: "var(--font-sans)",
+                    resize: "none",
+                    outline: "none",
+                    boxSizing: "border-box",
+                    marginBottom: 10,
+                  }}
+                />
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={async () => {
+                      await skipStep(activeBuildStep.id, build.id, skipReason, skipDescription);
+                      setSkipping(false);
+                      setSkipDescription("");
+                      setCompleted((prev) => new Set([...prev, activeBuildStep.id]));
+                      if (activeIndex < totalSteps - 1) {
+                        setTimeout(() => setActiveIndex(activeIndex + 1), 400);
+                      }
+                      router.refresh();
+                    }}
+                    style={{
+                      background: "var(--text-muted)",
+                      border: "none",
+                      borderRadius: 7,
+                      padding: "9px 20px",
+                      color: "#fff",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "var(--font-sans)",
+                    }}
+                  >
+                    Confirm Skip
+                  </button>
+                  <button
+                    onClick={() => { setSkipping(false); setSkipDescription(""); }}
+                    style={{
+                      background: "none",
+                      border: "1px solid var(--border)",
+                      borderRadius: 7,
+                      padding: "9px 16px",
+                      color: "var(--text-muted)",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      fontFamily: "var(--font-sans)",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {reporting && (
               <div style={{
