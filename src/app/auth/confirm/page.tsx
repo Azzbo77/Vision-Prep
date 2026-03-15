@@ -26,15 +26,11 @@ export default function ConfirmPage() {
       const refresh_token = params.get("refresh_token");
       const type = params.get("type");
 
-      console.log("HASH PARAMS:", { access_token: !!access_token, refresh_token: !!refresh_token, type });
-
       if (access_token && refresh_token) {
         const { data, error } = await supabase.auth.setSession({
           access_token,
           refresh_token,
         });
-
-        console.log("SET SESSION:", !!data.session, error?.message);
 
         if (error) {
           setStatus("Something went wrong. Please ask an admin to resend your invite.");

@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { completeStep, uncompleteStep, reportIssue } from "./actions";
 import AnnotationViewer from "./AnnotationViewer";
+import IssueNotification from "./IssueNotification";
 
 interface Part {
   id: string;
@@ -314,6 +316,22 @@ export default function BuilderView({ build, buildSteps, completedIds, userId }:
               >
                 {reporting ? "⚠ Reporting..." : "Flag Issue"}
               </button>
+              <Link
+                href={`/builder/${build.id}/issues`}
+                style={{
+                  background: "none",
+                  border: "1px solid var(--border)",
+                  borderRadius: 10,
+                  padding: "14px 20px",
+                  color: "var(--text-muted)",
+                  fontSize: 13,
+                  fontFamily: "var(--font-sans)",
+                  textDecoration: "none",
+                  display: "inline-block",
+                }}
+              >
+                My Issues
+              </Link>
             </div>
 
             {reporting && (
@@ -526,6 +544,11 @@ export default function BuilderView({ build, buildSteps, completedIds, userId }:
           </div>
         )}
       </div>
+      <IssueNotification
+        buildId={build.id}
+        userId={userId}
+        buildStepIds={buildSteps.map((bs) => bs.id)}
+      />
     </div>
   );
 }
