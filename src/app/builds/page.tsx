@@ -82,6 +82,22 @@ export default async function BuildsPage() {
               outline: "none",
             }}
           />
+          <input
+            name="customerRef"
+            placeholder="Job / order reference (optional)"
+            style={{
+              flex: 1,
+              minWidth: 160,
+              background: "var(--surface-high)",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              padding: "10px 14px",
+              color: "var(--text)",
+              fontSize: 13,
+              fontFamily: "var(--font-sans)",
+              outline: "none",
+            }}
+          />
           <button
             type="submit"
             style={{
@@ -143,6 +159,19 @@ export default async function BuildsPage() {
                   <div style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>
                     {build.description}
                   </div>
+                )}
+                {build.customerRef && (
+                  <span style={{
+                    color: "var(--text-dim)",
+                    fontSize: 11,
+                    fontFamily: "var(--font-mono)",
+                    background: "var(--surface-high)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 4,
+                    padding: "2px 8px",
+                  }}>
+                    {build.customerRef}
+                  </span>
                 )}
               </Link>
               <div style={{

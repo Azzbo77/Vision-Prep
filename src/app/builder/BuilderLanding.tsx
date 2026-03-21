@@ -86,6 +86,16 @@ export default function BuilderLanding({ allBuilds, assignedBuildIds, userId }: 
                 {build.description}
               </div>
             )}
+            {build.customerRef && (
+              <div style={{
+                fontSize: 11,
+                fontFamily: "var(--font-mono)",
+                color: "var(--text-dim)",
+                marginTop: 4,
+              }}>
+                Ref: {build.customerRef}
+              </div>
+            )}
           </div>
           <div style={{
             fontSize: 11,

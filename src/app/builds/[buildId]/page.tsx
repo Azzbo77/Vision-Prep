@@ -78,6 +78,36 @@ export default async function BuildPage({
         {build.description && (
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{build.description}</p>
         )}
+        {build.customerRef && (
+          <div style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: "var(--surface-high)",
+            border: "1px solid var(--border)",
+            borderRadius: 6,
+            padding: "4px 12px",
+            marginTop: 6,
+          }}>
+            <span style={{
+              color: "var(--text-muted)",
+              fontSize: 11,
+              fontFamily: "var(--font-mono)",
+              textTransform: "uppercase",
+              letterSpacing: 1,
+            }}>
+              Ref
+            </span>
+            <span style={{
+              color: "var(--text)",
+              fontSize: 12,
+              fontFamily: "var(--font-mono)",
+              fontWeight: 600,
+            }}>
+              {build.customerRef}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Status actions */}

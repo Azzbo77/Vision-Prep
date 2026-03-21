@@ -238,24 +238,38 @@ export default function DashboardClient({ initialBuilds, initialIssues }: Props)
                   justifyContent: "space-between",
                   marginBottom: 6,
                 }}>
-                  <Link
-                    href={`/builds/${build.id}`}
-                    style={{
+                  <div style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 6,
+                  }}>
+                    <Link href={`/builds/${build.id}`} style={{
                       color: "var(--text)",
                       fontSize: 13,
                       fontWeight: 500,
                       textDecoration: "none",
-                    }}
-                  >
-                    {build.title}
-                  </Link>
-                  <span style={{
-                    color: "var(--text-muted)",
-                    fontSize: 12,
-                    fontFamily: "var(--font-mono)",
-                  }}>
-                    {done}/{total}
-                  </span>
+                    }}>
+                      {build.title}
+                    </Link>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {build.customerRef && (
+                        <span style={{
+                          fontSize: 11,
+                          fontFamily: "var(--font-mono)",
+                          color: "var(--text-dim)",
+                        }}>
+                          {build.customerRef}
+                        </span>
+                      )}
+                      <span style={{
+                        color: "var(--text-muted)",
+                        fontSize: 12,
+                        fontFamily: "var(--font-mono)",
+                      }}>
+                        {done}/{total}
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 <div style={{
                   height: 5,

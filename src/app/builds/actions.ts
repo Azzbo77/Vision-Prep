@@ -6,12 +6,14 @@ import { createId } from "@paralleldrive/cuid2";
 export async function createBuild(formData: FormData) {
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
+  const customerRef = formData.get("customerRef") as string;
   if (!title?.trim()) return;
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.from("Build").insert({
     id: createId(),
     title: title.trim(),
     description: description?.trim() || null,
+    customerRef: customerRef?.trim() || null,
     status: "DRAFT",
     tags: [],
     updatedAt: new Date().toISOString(),
