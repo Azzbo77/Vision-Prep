@@ -11,6 +11,7 @@ interface Build {
   id: string;
   title: string;
   description: string | null;
+  customerRef: string | null;
   status: string;
   buildSteps: BuildStep[];
 }
