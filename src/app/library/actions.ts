@@ -60,10 +60,24 @@ export async function toggleCritical(stepId: string, folderId: string, formData:
   revalidatePath(`/library/${folderId}`);
 }
 
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+
 export async function uploadStepImage(formData: FormData) {
   const file = formData.get("file") as File;
   const stepId = formData.get("stepId") as string;
   if (!file || !stepId) return;
+
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    console.error("uploadStepImage: invalid file type", file.type);
+    return;
+  }
+
+  if (file.size > MAX_SIZE_BYTES) {
+    console.error("uploadStepImage: file too large", file.size);
+    return;
+  }
+
   const supabase = await createSupabaseServerClient();
   const fileExt = file.name.split(".").pop();
   const fileName = `${createId()}.${fileExt}`;
